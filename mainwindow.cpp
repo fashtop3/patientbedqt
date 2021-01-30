@@ -49,12 +49,8 @@ MainWindow::MainWindow(QWidget *parent) :
 
     serverProcess = new QProcess(this);
 
-    program  = "C:\\Program Files (x86)\\mosquitto\\mosquitto";
-    arguments <<  "-c" << "C:\\Program Files (x86)\\mosquitto\\mosquitto.conf" << "-v";
-
-
-    connect(serverProcess, SIGNAL(finished(int, QProcess::ExitStatus)), this, SLOT(readOutput(/*int, QProcess::ExitStatus*/)));
-    connect(serverProcess, SIGNAL(readyReadStandardError()), this, SLOT(readOutput(/*int, QProcess::ExitStatus*/)));
+    connect(serverProcess, &QProcess::readyReadStandardError,
+            this, &MainWindow::readOutput);
 
 }
 
@@ -78,6 +74,8 @@ void MainWindow::on_pushButtonServer_toggled(bool checked)
 
     if(checked){
         ui->textEdit->append("<b><font color='green'>Starting server.</font></b>\r\n");
+        program  = "C:\\Program Files (x86)\\mosquitto\\mosquitto";
+        arguments <<  "-c" << "C:\\Program Files (x86)\\mosquitto\\mosquitto.conf" << "-v";
         serverProcess->start(program, arguments);
     }
 
