@@ -78,6 +78,7 @@ private:
 
     QMap<QString, Action> actionMap;
     QMap<QString, PatientBed> bedMap;
+    QMap<QString, QLabel*> bedMapLabel;
 
     QSoundEffect *distressEffect;
     QSoundEffect *attentionEffect;

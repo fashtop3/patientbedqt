@@ -97,6 +97,13 @@ void MainWindow::readOutput(/*int exitCode, QProcess::ExitStatus exitStatus*/){
     QString msg = serverProcess->readAllStandardError().trimmed();
     qDebug() << "stderr: " << msg;
 
+    //check if connect bit is set else set it
+//    if (msg.contains("Sending SUBACK to ")) {
+//        QString subscr_bed = msg.split(":").last().split(" ").last();
+//        if (bedMap[subscr_bed])
+//            setNotificationColor(Qt::green, bedMapLabel[subscr_bed]);
+//    }
+
     ui->textEdit->append(msg.append("\r\n"));
 }
 
@@ -131,7 +138,7 @@ void MainWindow::on_pushButtonServer_toggled(bool checked)
         ui->textEdit->append("<b><font color='green'>Starting server.</font></b>\r\n");
         QString program  = "C:/Program Files (x86)/mosquitto/mosquitto";
         QStringList arguments;
-        arguments <<  "-c" << "C:/Program Files (x86)/mosquitto/mosquitto.conf";
+        arguments <<  "-c" << "C:/Program Files (x86)/mosquitto/mosquitto.conf" << "-v";
         serverProcess->start(program, arguments);
     }
 
