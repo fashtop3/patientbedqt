@@ -71,6 +71,11 @@ MainWindow::MainWindow(QWidget *parent) :
     bedMap["bed03"] = PatientBed::Bed3;
     bedMap["bed04"] = PatientBed::Bed4;
 
+    bedMapLabel["bed01"] = ui->info_bed_1;
+    bedMapLabel["bed02"] = ui->info_bed_2;
+    bedMapLabel["bed03"] = ui->info_bed_3;
+    bedMapLabel["bed04"] = ui->info_bed_4;
+
     serverProcess = new QProcess(this);
     subscribeProcess = new QProcess(this);
     publishProcess = new QProcess(this);
@@ -302,6 +307,7 @@ void MainWindow::on_pushButtonClear_clicked()
     QStringList arguments;
     arguments <<  "-t" << "reply/patient/bed" << "-m" << QString("clear/").append(ui->comboBox->currentText());
     publishProcess->start(program, arguments);
+    bedSubscription(bedMap[ui->comboBox->currentText()], Action::Clear);
 
 }
 
