@@ -1,6 +1,8 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
+#include "serverthread.h"
+
 #include <QLabel>
 #include <QMainWindow>
 #include <QSound>
@@ -54,10 +56,16 @@ private slots:
 
     void on_pushButtonClear_toggled(bool checked);
 
+    void readOutput();
+
 private:
     void setSoundEffects();
 
     Ui::MainWindow *ui;
+//    ServerThread serverThread;
+     QProcess *process;
+    QThread *thread;
+
     QSoundEffect *distressEffect;
     QSoundEffect *attentionEffect;
     QSoundEffect *clearEffect;

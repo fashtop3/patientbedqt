@@ -10,6 +10,7 @@
 #include <QMediaPlaylist>
 #include <QSoundEffect>
 #include <QTimer>
+#include <QTextCodec>
 
 
 
@@ -28,9 +29,9 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->pushButtonSubscribe->setDefault(false);
     ui->pushButtonSubscribe->setEnabled(false);
 
-    setNotificationColor(Qt::red, ui->info_bed_1);
-    setNotificationColor(Qt::blue, ui->info_bed_2);
-    setNotificationColor(Qt::green, ui->info_bed_3);
+    setNotificationColor(Qt::lightGray, ui->info_bed_1);
+    setNotificationColor(Qt::lightGray, ui->info_bed_2);
+    setNotificationColor(Qt::lightGray, ui->info_bed_3);
     setNotificationColor(Qt::lightGray, ui->info_bed_4);
 
     //    connect(bedTimer, &QTimer::timeout, this, [=](){
@@ -42,14 +43,35 @@ MainWindow::MainWindow(QWidget *parent) :
 
 
     bedSubscription(PatientBed::Bed1, Action::Attention);
-    bedSubscription(PatientBed::Bed2, Action::Attention);
-    bedSubscription(PatientBed::Bed3, Action::Distress);
-    bedSubscription(PatientBed::Bed4, Action::Distress);
+    //    bedSubscription(PatientBed::Bed2, Action::Clear);
+    //    bedSubscription(PatientBed::Bed3, Action::Clear);
+    //    bedSubscription(PatientBed::Bed4, Action::Clear);
 
+//    thread = new QThread;
+    process = new QProcess(this);
+
+    QString program  = "C:\\Program Files (x86)\\mosquitto\\mosquitto";
+    QStringList arguments;
+    arguments <<  "-c" << "C:\\Program Files (x86)\\mosquitto\\mosquitto.conf" << "-v";
+
+
+    connect(process, SIGNAL(finished(int, QProcess::ExitStatus)), this, SLOT(readOutput(/*int, QProcess::ExitStatus*/)));
+    connect(process, SIGNAL(readyReadStandardError()), this, SLOT(readOutput(/*int, QProcess::ExitStatus*/)));
+
+    process->start(program, arguments);
+
+}
+
+void MainWindow::readOutput(/*int exitCode, QProcess::ExitStatus exitStatus*/){
+    QString msg = process->readAllStandardError().trimmed();
+    qDebug() << "stderr: " << msg;
+
+    ui->textEdit->append(msg.append("\r\n"));
 }
 
 MainWindow::~MainWindow()
 {
+    process->terminate();
     delete ui;
 }
 
