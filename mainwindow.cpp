@@ -99,9 +99,14 @@ void MainWindow::readOutput(/*int exitCode, QProcess::ExitStatus exitStatus*/){
 
     //check if connect bit is set else set it
 //    if (msg.contains("Sending SUBACK to ")) {
-//        QString subscr_bed = msg.split(":").last().split(" ").last();
+//        QString subscr_bed = msg.split(" ").last();
 //        if (bedMap[subscr_bed])
 //            setNotificationColor(Qt::green, bedMapLabel[subscr_bed]);
+//    }
+
+//    1612047970: Client bed04 has exceeded timeout, disconnecting.
+//    if(msg.contains("has exceeded timeout, disconnecting.")) {
+//        QString client_id = msg.split(" ")[2];
 //    }
 
     ui->textEdit->append(msg.append("\r\n"));
