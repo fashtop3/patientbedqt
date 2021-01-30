@@ -5,6 +5,7 @@
 
 #include <QLabel>
 #include <QMainWindow>
+#include <QMap>
 #include <QSound>
 
 namespace Ui {
@@ -33,6 +34,8 @@ public:
     };
 
 
+    void clearAllInfo();
+
 public slots:
 
     void bedSubscription(PatientBed bed, Action action);
@@ -54,9 +57,15 @@ private slots:
 
     void on_pushButtonQuit_clicked();
 
-    void on_pushButtonClear_toggled(bool checked);
-
     void readOutput();
+
+    void readMessageSubscription();
+
+    void on_comboBox_currentIndexChanged(int index);
+
+    void on_pushButtonClear_clicked();
+
+    void publishMessageFinished(int exitCode, QProcess::ExitStatus exitStatus);
 
 private:
     void setSoundEffects();
@@ -64,8 +73,11 @@ private:
     Ui::MainWindow *ui;
     //    ServerThread serverThread;
     QProcess *serverProcess;
-    QString program;
-    QStringList arguments;
+    QProcess *subscribeProcess;
+    QProcess *publishProcess;
+
+    QMap<QString, Action> actionMap;
+    QMap<QString, PatientBed> bedMap;
 
     QSoundEffect *distressEffect;
     QSoundEffect *attentionEffect;

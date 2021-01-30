@@ -11,8 +11,22 @@
 #include <QSoundEffect>
 #include <QTimer>
 #include <QTextCodec>
+#include <QDateTime>
 
 
+
+void MainWindow::clearAllInfo()
+{
+    bed1Action = Action::Clear; //bed1Color = Qt::transparent;
+    bed2Action = Action::Clear;// bed2Color = Qt::transparent;
+    bed3Action = Action::Clear; //bed3Color = Qt::transparent;
+    bed4Action = Action::Clear; //bed4Color = Qt::transparent;
+
+    setNotificationColor(Qt::lightGray, ui->info_bed_1);
+    setNotificationColor(Qt::lightGray, ui->info_bed_2);
+    setNotificationColor(Qt::lightGray, ui->info_bed_3);
+    setNotificationColor(Qt::lightGray, ui->info_bed_4);
+}
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -29,28 +43,48 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->pushButtonSubscribe->setDefault(false);
     ui->pushButtonSubscribe->setEnabled(false);
 
-    setNotificationColor(Qt::lightGray, ui->info_bed_1);
-    setNotificationColor(Qt::lightGray, ui->info_bed_2);
-    setNotificationColor(Qt::lightGray, ui->info_bed_3);
-    setNotificationColor(Qt::lightGray, ui->info_bed_4);
+    ui->comboBox->addItems(QStringList()
+                           << "---"
+                           << "bed01"
+                           << "bed02"
+                           << "bed03"
+                           << "bed04");
 
-    //    connect(bedTimer, &QTimer::timeout, this, [=](){
-    //        qDebug() << "timed out";
-    //    });
+    clearAllInfo();
+
 
     setSoundEffects();
     connectInfoLabels();
 
 
-    bedSubscription(PatientBed::Bed1, Action::Attention);
+//    bedSubscription(PatientBed::Bed1, Action::Attention);
     //    bedSubscription(PatientBed::Bed2, Action::Clear);
     //    bedSubscription(PatientBed::Bed3, Action::Clear);
     //    bedSubscription(PatientBed::Bed4, Action::Clear);
 
+    actionMap["attention"] = Action::Attention;
+    actionMap["distress"] = Action::Distress;
+    actionMap["clear"] = Action::Clear;
+
+    bedMap["bed01"] = PatientBed::Bed1;
+    bedMap["bed02"] = PatientBed::Bed2;
+    bedMap["bed03"] = PatientBed::Bed3;
+    bedMap["bed04"] = PatientBed::Bed4;
+
     serverProcess = new QProcess(this);
+    subscribeProcess = new QProcess(this);
+    publishProcess = new QProcess(this);
 
     connect(serverProcess, &QProcess::readyReadStandardError,
             this, &MainWindow::readOutput);
+
+    connect(subscribeProcess, &QProcess::readyRead,
+            this, &MainWindow::readMessageSubscription);
+
+    connect(publishProcess, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+            this, &MainWindow::publishMessageFinished);
+
+
 
 }
 
@@ -61,10 +95,26 @@ void MainWindow::readOutput(/*int exitCode, QProcess::ExitStatus exitStatus*/){
     ui->textEdit->append(msg.append("\r\n"));
 }
 
+void MainWindow::readMessageSubscription()
+{
+    QString msg = subscribeProcess->readAll().trimmed();
+    //    process event here
+    QStringList msgSplit = msg.split("/");
+
+    bedSubscription(bedMap[msgSplit[1]], actionMap[msgSplit[0]]);
+
+    qDebug() << "\r\nMessage: " << msg;
+
+    ui->textEdit->append(QString("<font color='orange'>Message:&nbsp;&nbsp;</font>"
+                                 " <font color='blue'>\"%1\"</font>\t (%2) <br>")
+                         .arg(msg)
+                         .arg(QDateTime::currentDateTime().toString()));
+}
+
 MainWindow::~MainWindow()
 {
     serverProcess->kill();
-    ui->textEdit->append("<b><font color='red'>Server stopped.</font></b>\r\n");
+    ui->textEdit->append("<b><font color='red'>Server stopped.</font></b>");
     delete ui;
 }
 
@@ -74,14 +124,15 @@ void MainWindow::on_pushButtonServer_toggled(bool checked)
 
     if(checked){
         ui->textEdit->append("<b><font color='green'>Starting server.</font></b>\r\n");
-        program  = "C:\\Program Files (x86)\\mosquitto\\mosquitto";
-        arguments <<  "-c" << "C:\\Program Files (x86)\\mosquitto\\mosquitto.conf" << "-v";
+        QString program  = "C:/Program Files (x86)/mosquitto/mosquitto";
+        QStringList arguments;
+        arguments <<  "-c" << "C:/Program Files (x86)/mosquitto/mosquitto.conf";
         serverProcess->start(program, arguments);
     }
 
     if (!checked) {
         serverProcess->kill();
-        ui->textEdit->append("<b><font color='red'>Server stopped.</font></b>\r\n");
+        ui->textEdit->append("<b><font color='red'>Server stopped.</font></b>");
         // remove subscription
         ui->pushButtonSubscribe->setChecked(false);
     }
@@ -90,18 +141,32 @@ void MainWindow::on_pushButtonServer_toggled(bool checked)
 void MainWindow::on_pushButtonSubscribe_toggled(bool checked)
 {
     qDebug() << "Subscribe: " << checked;
+    if(checked){
+        ui->textEdit->append("<b><font color='green'>subcribing to: <i>monitor/patient/bed</i></font></b>\r\n");
+        QString program  = "C:/Program Files (x86)/mosquitto/mosquitto_sub.exe";
+        QStringList arguments;
+        arguments <<  "-t" << "monitor/patient/bed";
+        subscribeProcess->start(program, arguments);
+    }
+
+    if (!checked) {
+        subscribeProcess->kill();
+        ui->textEdit->append("<b><font color='red'>unsubscribed from: <i>monitor/patient/bed</i></font></b>");
+        // remove subscription
+        ui->pushButtonSubscribe->setChecked(false);
+        clearAllInfo();
+        attentionEffect->stop();
+        clearEffect->stop();
+        distressEffect->stop();
+    }
 }
 
 void MainWindow::on_pushButtonQuit_clicked()
 {
-
+    serverProcess->kill();
+    subscribeProcess->kill();
 }
 
-
-void MainWindow::on_pushButtonClear_toggled(bool checked)
-{
-
-}
 
 void MainWindow::bedSubscription(PatientBed bed, Action action)
 {
@@ -109,18 +174,26 @@ void MainWindow::bedSubscription(PatientBed bed, Action action)
     switch (bed) {
     case MainWindow::Bed1:
         bed1Action = action;
+        if(action == Action::Clear)
+            setNotificationColor(Qt::green, ui->info_bed_1);
         break;
 
     case MainWindow::Bed2:
         bed2Action = action;
+        if(action == Action::Clear)
+            setNotificationColor(Qt::green, ui->info_bed_2);
         break;
 
     case MainWindow::Bed3:
         bed3Action = action;
+        if(action == Action::Clear)
+            setNotificationColor(Qt::green, ui->info_bed_3);
         break;
 
     case MainWindow::Bed4:
         bed4Action = action;
+        if(action == Action::Clear)
+            setNotificationColor(Qt::green, ui->info_bed_4);
         break;
     }
 
@@ -148,12 +221,13 @@ void MainWindow::setInfoToggler(Action& bedActionRef,
         //        qDebug() << bedActionRef << bedColorRef << color;
 
         if (bedColorRef == color)
-            bedColorRef = Qt::gray;
+            bedColorRef = Qt::lightGray;
         else
             bedColorRef = color;
 
         this->setNotificationColor(bedColorRef, labelRef);
     }
+
 }
 
 void MainWindow::connectInfoLabels()
@@ -166,15 +240,19 @@ void MainWindow::connectInfoLabels()
     connect(bedTimer, &QTimer::timeout, this, [=]() {
         this->setInfoToggler(bed1Action, bed1Color, Action::Attention, Qt::yellow, ui->info_bed_1);
         this->setInfoToggler(bed1Action, bed1Color, Action::Distress, Qt::blue, ui->info_bed_1);
+        this->setInfoToggler(bed1Action, bed1Color, Action::Clear, Qt::gray, ui->info_bed_1);
 
         this->setInfoToggler(bed2Action, bed2Color, Action::Attention, Qt::yellow, ui->info_bed_2);
         this->setInfoToggler(bed2Action, bed2Color, Action::Distress, Qt::blue, ui->info_bed_2);
+        this->setInfoToggler(bed1Action, bed1Color, Action::Clear, Qt::gray, ui->info_bed_2);
 
         this->setInfoToggler(bed3Action, bed3Color, Action::Attention, Qt::yellow, ui->info_bed_3);
         this->setInfoToggler(bed3Action, bed3Color, Action::Distress, Qt::blue, ui->info_bed_3);
+        this->setInfoToggler(bed1Action, bed1Color, Action::Clear, Qt::gray, ui->info_bed_3);
 
         this->setInfoToggler(bed4Action, bed4Color, Action::Attention, Qt::yellow, ui->info_bed_4);
         this->setInfoToggler(bed4Action, bed4Color, Action::Distress, Qt::blue, ui->info_bed_4);
+        this->setInfoToggler(bed1Action, bed1Color, Action::Clear, Qt::gray, ui->info_bed_4);
     });
 }
 
@@ -210,4 +288,31 @@ void MainWindow::setSoundEffects()
     clearEffect = new QSoundEffect();
     clearEffect->setSource(QUrl("qrc:/sounds/clear.wav"));
     clearEffect->setVolume(1.0);
+}
+
+void MainWindow::on_comboBox_currentIndexChanged(int index)
+{
+    ui->pushButtonClear->setEnabled(index > 0);
+}
+
+void MainWindow::on_pushButtonClear_clicked()
+{
+    //send a message to a reply channel
+    QString program  = "C:/Program Files (x86)/mosquitto/mosquitto_pub.exe";
+    QStringList arguments;
+    arguments <<  "-t" << "reply/patient/bed" << "-m" << QString("clear/").append(ui->comboBox->currentText());
+    publishProcess->start(program, arguments);
+
+}
+
+void MainWindow::publishMessageFinished(int exitCode, QProcess::ExitStatus exitStatus)
+{
+    qDebug() << exitCode << exitStatus;
+    if (exitStatus == QProcess::NormalExit) {
+        ui->textEdit->append(QString("<font color='orange'>Command sent:&nbsp;&nbsp;</font>"
+                                     " <font color='blue'>\"%1\"</font>\t (%2) <br>")
+                             .arg(QString("clear/").append(ui->comboBox->currentText()))
+                             .arg(QDateTime::currentDateTime().toString()));
+        ui->comboBox->setCurrentIndex(0);
+    }
 }
