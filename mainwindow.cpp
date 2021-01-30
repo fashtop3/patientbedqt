@@ -47,23 +47,19 @@ MainWindow::MainWindow(QWidget *parent) :
     //    bedSubscription(PatientBed::Bed3, Action::Clear);
     //    bedSubscription(PatientBed::Bed4, Action::Clear);
 
-//    thread = new QThread;
-    process = new QProcess(this);
+    serverProcess = new QProcess(this);
 
-    QString program  = "C:\\Program Files (x86)\\mosquitto\\mosquitto";
-    QStringList arguments;
+    program  = "C:\\Program Files (x86)\\mosquitto\\mosquitto";
     arguments <<  "-c" << "C:\\Program Files (x86)\\mosquitto\\mosquitto.conf" << "-v";
 
 
-    connect(process, SIGNAL(finished(int, QProcess::ExitStatus)), this, SLOT(readOutput(/*int, QProcess::ExitStatus*/)));
-    connect(process, SIGNAL(readyReadStandardError()), this, SLOT(readOutput(/*int, QProcess::ExitStatus*/)));
-
-    process->start(program, arguments);
+    connect(serverProcess, SIGNAL(finished(int, QProcess::ExitStatus)), this, SLOT(readOutput(/*int, QProcess::ExitStatus*/)));
+    connect(serverProcess, SIGNAL(readyReadStandardError()), this, SLOT(readOutput(/*int, QProcess::ExitStatus*/)));
 
 }
 
 void MainWindow::readOutput(/*int exitCode, QProcess::ExitStatus exitStatus*/){
-    QString msg = process->readAllStandardError().trimmed();
+    QString msg = serverProcess->readAllStandardError().trimmed();
     qDebug() << "stderr: " << msg;
 
     ui->textEdit->append(msg.append("\r\n"));
@@ -71,7 +67,8 @@ void MainWindow::readOutput(/*int exitCode, QProcess::ExitStatus exitStatus*/){
 
 MainWindow::~MainWindow()
 {
-    process->terminate();
+    serverProcess->kill();
+    ui->textEdit->append("<b><font color='red'>Server stopped.</font></b>\r\n");
     delete ui;
 }
 
@@ -79,7 +76,14 @@ void MainWindow::on_pushButtonServer_toggled(bool checked)
 {
     qDebug() << "server: " << checked;
 
+    if(checked){
+        ui->textEdit->append("<b><font color='green'>Starting server.</font></b>\r\n");
+        serverProcess->start(program, arguments);
+    }
+
     if (!checked) {
+        serverProcess->kill();
+        ui->textEdit->append("<b><font color='red'>Server stopped.</font></b>\r\n");
         // remove subscription
         ui->pushButtonSubscribe->setChecked(false);
     }

@@ -62,9 +62,10 @@ private:
     void setSoundEffects();
 
     Ui::MainWindow *ui;
-//    ServerThread serverThread;
-     QProcess *process;
-    QThread *thread;
+    //    ServerThread serverThread;
+    QProcess *serverProcess;
+    QString program;
+    QStringList arguments;
 
     QSoundEffect *distressEffect;
     QSoundEffect *attentionEffect;
