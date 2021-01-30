@@ -20,7 +20,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->setupUi(this);
 
     bedTimer = new QTimer();
-    bedTimer->setInterval(800);
+    bedTimer->setInterval(500);
     bedTimer->start();
 
     ui->pushButtonClear->setDefault(false);
@@ -33,14 +33,19 @@ MainWindow::MainWindow(QWidget *parent) :
     setNotificationColor(Qt::green, ui->info_bed_3);
     setNotificationColor(Qt::lightGray, ui->info_bed_4);
 
-    connect(bedTimer, &QTimer::timeout, this, [=](){
-        qDebug() << "timed out";
-    });
+    //    connect(bedTimer, &QTimer::timeout, this, [=](){
+    //        qDebug() << "timed out";
+    //    });
 
     setSoundEffects();
+    connectInfoLabels();
 
-    //    alert->play();
-    //    distress->play();
+
+    bedSubscription(PatientBed::Bed1, Action::Attention);
+    bedSubscription(PatientBed::Bed2, Action::Attention);
+    bedSubscription(PatientBed::Bed3, Action::Distress);
+    bedSubscription(PatientBed::Bed4, Action::Distress);
+
 }
 
 MainWindow::~MainWindow()
@@ -78,7 +83,6 @@ void MainWindow::bedSubscription(PatientBed bed, Action action)
 {
 
     switch (bed) {
-
     case MainWindow::Bed1:
         bed1Action = action;
         break;
@@ -95,57 +99,59 @@ void MainWindow::bedSubscription(PatientBed bed, Action action)
         bed4Action = action;
         break;
     }
+
+    int checkBit = bed1Action | bed2Action | bed3Action | bed4Action;
+
+    if(checkBit & (1<<0))
+        attentionEffect->play();
+    else
+        attentionEffect->stop();
+
+    if(checkBit & (1<<1))
+        distressEffect->play();
+    else
+        distressEffect->stop();
+
 }
 
-void MainWindow::setInfoToggler(Action& bedAction,
-                                QColor& bedColor,
+void MainWindow::setInfoToggler(Action& bedActionRef,
+                                QColor& bedColorRef,
+                                Action actionCheck,
                                 QColor color,
-                                QLabel *label)
+                                QLabel *labelRef)
 {
-    if(bedAction != Action::Clear) {
-        bedColor = color;
-        if (bedColor == color)
-            bedColor = Qt::gray;
+    if(bedActionRef != Action::Clear && bedActionRef == actionCheck) {
+        //        qDebug() << bedActionRef << bedColorRef << color;
+
+        if (bedColorRef == color)
+            bedColorRef = Qt::gray;
         else
-            bedColor = color;
+            bedColorRef = color;
 
-        this->setNotificationColor(bedColor, label);
+        this->setNotificationColor(bedColorRef, labelRef);
     }
-    //    bed1Color = Qt::blue;
-    //    if (bed1Color == Qt::blue)
-    //        bed1Color = Qt::gray;
-    //    else
-    //        bed1Color = Qt::yellow;
-
-    //    this->setNotificationColor(bed1Color, ui->info_bed_4);
 }
 
 void MainWindow::connectInfoLabels()
 {
-    //bed 1
+    bed1Action = Action::Clear; bed1Color = Qt::transparent;
+    bed2Action = Action::Clear; bed2Color = Qt::transparent;
+    bed3Action = Action::Clear; bed3Color = Qt::transparent;
+    bed4Action = Action::Clear; bed4Color = Qt::transparent;
+
     connect(bedTimer, &QTimer::timeout, this, [=]() {
-        this->setInfoToggler(bed1Action, bed1Color, Qt::yellow, ui->info_bed_1);
-        this->setInfoToggler(bed1Action, bed1Color, Qt::blue, ui->info_bed_1);
+        this->setInfoToggler(bed1Action, bed1Color, Action::Attention, Qt::yellow, ui->info_bed_1);
+        this->setInfoToggler(bed1Action, bed1Color, Action::Distress, Qt::blue, ui->info_bed_1);
 
-        this->setInfoToggler(bed2Action, bed2Color, Qt::yellow, ui->info_bed_2);
-        this->setInfoToggler(bed2Action, bed2Color, Qt::blue, ui->info_bed_2);
+        this->setInfoToggler(bed2Action, bed2Color, Action::Attention, Qt::yellow, ui->info_bed_2);
+        this->setInfoToggler(bed2Action, bed2Color, Action::Distress, Qt::blue, ui->info_bed_2);
 
-        this->setInfoToggler(bed3Action, bed3Color, Qt::yellow, ui->info_bed_3);
-        this->setInfoToggler(bed3Action, bed3Color, Qt::blue, ui->info_bed_3);
+        this->setInfoToggler(bed3Action, bed3Color, Action::Attention, Qt::yellow, ui->info_bed_3);
+        this->setInfoToggler(bed3Action, bed3Color, Action::Distress, Qt::blue, ui->info_bed_3);
 
-        this->setInfoToggler(bed4Action, bed4Color, Qt::yellow, ui->info_bed_4);
-        this->setInfoToggler(bed4Action, bed4Color, Qt::blue, ui->info_bed_4);
+        this->setInfoToggler(bed4Action, bed4Color, Action::Attention, Qt::yellow, ui->info_bed_4);
+        this->setInfoToggler(bed4Action, bed4Color, Action::Distress, Qt::blue, ui->info_bed_4);
     });
-}
-
-void MainWindow::bed3Subscription(Action action)
-{
-
-}
-
-void MainWindow::bed4Subscription(Action action)
-{
-
 }
 
 
@@ -167,17 +173,17 @@ void MainWindow::setNotificationColor(QColor color, QLabel *label)
 
 void MainWindow::setSoundEffects()
 {
-    alert = new QSoundEffect();
-    alert->setSource(QUrl("qrc:/sounds/alert.wav"));
-    alert->setLoopCount(QSoundEffect::Infinite);
-    alert->setVolume(1.0);
+    attentionEffect = new QSoundEffect();
+    attentionEffect->setSource(QUrl("qrc:/sounds/alert.wav"));
+    attentionEffect->setLoopCount(QSoundEffect::Infinite);
+    attentionEffect->setVolume(1.0);
 
-    distress = new QSoundEffect();
-    distress->setSource(QUrl("qrc:/sounds/distress.wav"));
-    distress->setLoopCount(QSoundEffect::Infinite);
-    distress->setVolume(1.0);
+    distressEffect = new QSoundEffect();
+    distressEffect->setSource(QUrl("qrc:/sounds/distress.wav"));
+    distressEffect->setLoopCount(QSoundEffect::Infinite);
+    distressEffect->setVolume(1.0);
 
-    clear = new QSoundEffect();
-    clear->setSource(QUrl("qrc:/sounds/clear.wav"));
-    clear->setVolume(1.0);
+    clearEffect = new QSoundEffect();
+    clearEffect->setSource(QUrl("qrc:/sounds/clear.wav"));
+    clearEffect->setVolume(1.0);
 }

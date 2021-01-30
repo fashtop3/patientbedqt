@@ -18,16 +18,16 @@ public:
     ~MainWindow();
 
     enum Action {
+        Clear = 0,
         Attention,
-        Distress,
-        Clear
+        Distress
     };
 
     enum PatientBed {
-        Bed1,
-        Bed2,
-        Bed3,
-        Bed4
+        Bed1 = 1,
+        Bed2 = 2,
+        Bed3 = 3,
+        Bed4 = 4
     };
 
 
@@ -37,14 +37,13 @@ public slots:
 
     void connectInfoLabels();
 
-    void bed3Subscription(Action action);
-
-    void bed4Subscription(Action action);
-
 protected:
     void setNotificationColor(QColor color, QLabel *label);
 
-    void setInfoToggler(QColor& bedColor, QColor color, QLabel *label);
+    void setInfoToggler(Action &bedActionRef,
+                        QColor& bedColorRef, Action actionCheck,
+                        QColor color,
+                        QLabel *labelRef);
 
 private slots:
     void on_pushButtonServer_toggled(bool checked);
@@ -59,9 +58,9 @@ private:
     void setSoundEffects();
 
     Ui::MainWindow *ui;
-    QSoundEffect *distress;
-    QSoundEffect *alert;
-    QSoundEffect *clear;
+    QSoundEffect *distressEffect;
+    QSoundEffect *attentionEffect;
+    QSoundEffect *clearEffect;
 
     QTimer *bedTimer;
 
