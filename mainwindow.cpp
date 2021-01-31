@@ -90,6 +90,11 @@ MainWindow::MainWindow(QWidget *parent) :
             this, &MainWindow::publishMessageFinished);
 
 
+    this->setWindowTitle("PATIENT BED MONITOR");
+
+//    qDebug() << "App path : " << qApp->applicationDirPath() + "/mosquitto";
+
+    mosquito_path = qApp->applicationDirPath() + "/mosquitto";
 
 }
 
@@ -142,9 +147,9 @@ void MainWindow::on_pushButtonServer_toggled(bool checked)
 
     if(checked){
         ui->textEdit->append("<b><font color='green'>Starting server.</font></b>\r\n");
-        QString program  = "C:/Program Files (x86)/mosquitto/mosquitto";
+        QString program  = mosquito_path + "/mosquitto";
         QStringList arguments;
-        arguments <<  "-c" << "C:/Program Files (x86)/mosquitto/mosquitto.conf" << "-v";
+        arguments <<  "-c" << mosquito_path + "/mosquitto.conf" << "-v";
         serverProcess->start(program, arguments);
     }
 
@@ -161,7 +166,7 @@ void MainWindow::on_pushButtonSubscribe_toggled(bool checked)
     qDebug() << "Subscribe: " << checked;
     if(checked){
         ui->textEdit->append("<b><font color='green'>subcribing to: <i>monitor/patient/bed</i></font></b>\r\n");
-        QString program  = "C:/Program Files (x86)/mosquitto/mosquitto_sub.exe";
+        QString program  = mosquito_path + "/mosquitto_sub.exe";
         QStringList arguments;
         arguments <<  "-t" << "monitor/patient/bed";
         subscribeProcess->start(program, arguments);
@@ -316,7 +321,7 @@ void MainWindow::on_comboBox_currentIndexChanged(int index)
 void MainWindow::on_pushButtonClear_clicked()
 {
     //send a message to a reply channel
-    QString program  = "C:/Program Files (x86)/mosquitto/mosquitto_pub.exe";
+    QString program  = mosquito_path.append("/mosquitto_pub.exe");
     QStringList arguments;
     arguments <<  "-t" << "reply/patient/bed" << "-m" << QString("clear/").append(ui->comboBox->currentText());
     publishProcess->start(program, arguments);

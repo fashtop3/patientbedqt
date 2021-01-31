@@ -1,11 +1,10 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-#include "serverthread.h"
-
 #include <QLabel>
 #include <QMainWindow>
 #include <QMap>
+#include <QProcess>
 #include <QSound>
 
 namespace Ui {
@@ -83,6 +82,8 @@ private:
     QSoundEffect *distressEffect;
     QSoundEffect *attentionEffect;
     QSoundEffect *clearEffect;
+
+    QString mosquito_path;
 
     QTimer *bedTimer;
 
