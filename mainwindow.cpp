@@ -57,10 +57,10 @@ MainWindow::MainWindow(QWidget *parent) :
     connectInfoLabels();
 
 
-//    bedSubscription(PatientBed::Bed1, Action::Attention);
-    //    bedSubscription(PatientBed::Bed2, Action::Clear);
-    //    bedSubscription(PatientBed::Bed3, Action::Clear);
-    //    bedSubscription(PatientBed::Bed4, Action::Clear);
+    setNotificationColor(Qt::red, ui->conn_bed_1);
+    setNotificationColor(Qt::red, ui->conn_bed_2);
+    setNotificationColor(Qt::red, ui->conn_bed_3);
+    setNotificationColor(Qt::red, ui->conn_bed_4);
 
     actionMap["attention"] = Action::Attention;
     actionMap["distress"] = Action::Distress;
@@ -71,10 +71,10 @@ MainWindow::MainWindow(QWidget *parent) :
     bedMap["bed03"] = PatientBed::Bed3;
     bedMap["bed04"] = PatientBed::Bed4;
 
-    bedMapLabel["bed01"] = ui->info_bed_1;
-    bedMapLabel["bed02"] = ui->info_bed_2;
-    bedMapLabel["bed03"] = ui->info_bed_3;
-    bedMapLabel["bed04"] = ui->info_bed_4;
+    connPixmap["bed01"] = ui->conn_bed_1;
+    connPixmap["bed02"] = ui->conn_bed_2;
+    connPixmap["bed03"] = ui->conn_bed_3;
+    connPixmap["bed04"] = ui->conn_bed_4;
 
     serverProcess = new QProcess(this);
     subscribeProcess = new QProcess(this);
@@ -98,16 +98,17 @@ void MainWindow::readOutput(/*int exitCode, QProcess::ExitStatus exitStatus*/){
     qDebug() << "stderr: " << msg;
 
     //check if connect bit is set else set it
-//    if (msg.contains("Sending SUBACK to ")) {
-//        QString subscr_bed = msg.split(" ").last();
-//        if (bedMap[subscr_bed])
-//            setNotificationColor(Qt::green, bedMapLabel[subscr_bed]);
-//    }
+    if (msg.contains("Sending SUBACK to ")) {
+        QString client_id = msg.split(" ").last();
+        if (connPixmap[client_id])
+            setNotificationColor(Qt::green, connPixmap[client_id]);
+    }
 
 //    1612047970: Client bed04 has exceeded timeout, disconnecting.
-//    if(msg.contains("has exceeded timeout, disconnecting.")) {
-//        QString client_id = msg.split(" ")[2];
-//    }
+    if(msg.contains("has exceeded timeout, disconnecting.")) {
+        QString client_id = msg.split(" ")[2];
+        setNotificationColor(Qt::red, connPixmap[client_id]);
+    }
 
     ui->textEdit->append(msg.append("\r\n"));
 }
@@ -285,7 +286,7 @@ void MainWindow::setNotificationColor(QColor color, QLabel *label)
     painter.setRenderHint(QPainter::SmoothPixmapTransform, true);
     painter.setBrush(QBrush(color));
     painter.setPen(Qt::NoPen);
-    painter.drawEllipse(15, 20, label->height()/2, label->height()/2);
+    painter.drawEllipse(12, 20, label->height()/2, label->height()/2);
 
     label->setPixmap(target);
 }
